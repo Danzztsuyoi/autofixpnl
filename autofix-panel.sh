@@ -8,10 +8,9 @@ echo "================================"
 
 sleep 2
 
-echo "Memperbaiki APT lock..."
+echo "Menghentikan proses apt/dpkg..."
 
-killall apt apt-get 2>/dev/null
-killall dpkg 2>/dev/null
+killall apt apt-get dpkg 2>/dev/null
 
 rm -f /var/lib/dpkg/lock-frontend
 rm -f /var/lib/dpkg/lock
@@ -19,9 +18,13 @@ rm -f /var/cache/apt/archives/lock
 
 dpkg --configure -a
 
-echo "Menunggu proses APT selesai..."
+echo "Menunggu dpkg selesai..."
 
 while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+sleep 2
+done
+
+while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ; do
 sleep 2
 done
 
