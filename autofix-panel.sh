@@ -47,6 +47,14 @@ echo "Stop wings..."
 
 systemctl stop wings 2>/dev/null
 
+echo "Membersihkan database lama..."
+
+mysql -u root -e "DROP DATABASE IF EXISTS panel;" 2>/dev/null
+mysql -u root -e "DROP USER IF EXISTS 'admin'@'127.0.0.1';" 2>/dev/null
+mysql -u root -e "DROP USER IF EXISTS 'admin'@'localhost';" 2>/dev/null
+mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'127.0.0.1';" 2>/dev/null
+mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'localhost';" 2>/dev/null
+
 echo "Membersihkan docker..."
 
 docker system prune -a -f 2>/dev/null
