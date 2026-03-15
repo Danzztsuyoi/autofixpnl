@@ -1,38 +1,39 @@
+
 #!/bin/bash
 
-clear
+echo "Masukkan nama lokasi: "
+read location_name
 
-echo "Masukkan nama lokasi:"
-read location
+echo "Masukkan deskripsi lokasi: "
+read location_description
 
-echo "Masukkan deskripsi lokasi:"
-read desc
-
-echo "Masukkan domain:"
+echo "Masukkan domain: "
 read domain
 
-echo "Masukkan nama node:"
-read nodename
+echo "Masukkan nama node: "
+read node_name
 
-echo "Masukkan RAM (dalam MB):"
+echo "Masukkan RAM (dalam MB): "
 read ram
 
-echo "Masukkan jumlah maksimum disk space (dalam MB):"
-read disk
+echo "Masukkan jumlah maksimum disk space (dalam MB): "
+read disk_space
 
-echo "Masukkan Locid:"
+echo "Masukkan Locid: "
 read locid
 
-cd /var/www/pterodactyl
+cd /var/www/pterodactyl || { echo "Direktori tidak ditemukan"; exit 1; }
 
+# Membuat lokasi
 php artisan p:location:make <<EOF
-$location
-$desc
+$location_name
+$location_description
 EOF
 
+# Membuat node
 php artisan p:node:make <<EOF
-$nodename
-$desc
+$node_name
+$node_name
 $locid
 https
 $domain
@@ -40,13 +41,15 @@ yes
 no
 no
 $ram
-$ram
-$disk
-$disk
+0
+$disk_space
+0
 100
 8080
 2022
 /var/lib/pterodactyl/volumes
 EOF
 
-echo "Node berhasil dibuat"
+echo "================================"
+echo "NODE BERHASIL DIBUAT"
+echo "================================"
