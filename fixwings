@@ -9,7 +9,7 @@ sleep 2
 
 echo "Update package..."
 apt update -y
-apt install curl certbot tar unzip -y
+apt install curl certbot tar unzip jq -y
 
 echo "================================"
 echo "Memastikan docker aktif..."
@@ -136,17 +136,29 @@ fi
 fi
 
 echo "================================"
-echo "Cek config wings..."
+echo "CREATE NODE ALLOCATION"
 echo "================================"
 
-if [ ! -f "/etc/pterodactyl/config.yml" ]; then
-echo ""
-echo "CONFIG WINGS BELUM ADA"
-echo "Jalankan command ini:"
-echo ""
-echo "cd /etc/pterodactyl && wings configure --panel-url https://DOMAIN --token TOKEN --node ID"
-echo ""
-fi
+PANEL=$(grep APP_URL /var/www/pterodactyl/.env | cut -d '=' -f2)
+
+echo "Masukkan API KEY PANEL:"
+read APIKEY
+
+NODE_ID=$(curl -s -H "Authorization: Bearer $APIKEY" \
+-H "Accept: application/json" \
+$PANEL/api/application/nodes | jq -r '.data[0].attributes.id')
+
+echo "Node ID: $NODE_ID"
+
+curl -X POST "$PANEL/api/application/nodes/$NODE_ID/allocations" \
+-H "Authorization: Bearer $APIKEY" \
+-H "Content-Type: application/json" \
+-d '{
+"ip": "0.0.0.0",
+"ports": ["2000-5000"]
+}'
+
+echo "Allocation berhasil dibuat"
 
 echo "================================"
 echo "Menjalankan wings..."
