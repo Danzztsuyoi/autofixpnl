@@ -2,7 +2,7 @@
 
 clear
 echo "================================"
-echo "AUTO FIX WINGS PTERODACTYL PRO"
+echo "AUTO FIX WINGS PTERODACTYL"
 echo "================================"
 
 sleep 2
@@ -11,35 +11,51 @@ echo "Update package..."
 apt update -y
 
 echo "================================"
-echo "Memastikan docker aktif..."
+echo "Install dependency..."
+echo "================================"
+
+apt install -y curl wget sudo iptables openssl
+
+echo "================================"
+echo "Install docker..."
 echo "================================"
 
 if ! command -v docker &> /dev/null
 then
-echo "Docker belum ada, install docker..."
 curl -fsSL https://get.docker.com | sh
 fi
 
 systemctl enable docker
-systemctl start docker
-
-echo "Docker status:"
-systemctl is-active docker
+systemctl restart docker
 
 echo "================================"
-echo "Install Wings..."
+echo "Install wings..."
 echo "================================"
-
-if ! command -v wings &> /dev/null
-then
 
 curl -L -o /usr/local/bin/wings https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_amd64
 chmod +x /usr/local/bin/wings
 
-fi
+echo "================================"
+echo "Setup folder..."
+echo "================================"
+
+mkdir -p /etc/pterodactyl
+mkdir -p /var/lib/pterodactyl
+mkdir -p /var/lib/pterodactyl/volumes
+mkdir -p /var/log/pterodactyl
+
+chmod -R 755 /var/lib/pterodactyl
 
 echo "================================"
-echo "Membuat service wings..."
+echo "Generate SSH host key..."
+echo "================================"
+
+ssh-keygen -A
+
+systemctl restart ssh
+
+echo "================================"
+echo "Setup systemd service..."
 echo "================================"
 
 cat <<EOF > /etc/systemd/system/wings.service
@@ -61,64 +77,14 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-
-echo "================================"
-echo "Menyiapkan folder wings..."
-echo "================================"
-
-mkdir -p /etc/pterodactyl
-mkdir -p /var/lib/pterodactyl
-mkdir -p /var/lib/pterodactyl/volumes
-mkdir -p /var/log/pterodactyl
-
-echo "================================"
-echo "Fix permission..."
-echo "================================"
-
-chown -R 988:988 /var/lib/pterodactyl 2>/dev/null
-chmod -R 755 /var/lib/pterodactyl
-
-echo "================================"
-echo "Generate SSH key (fix SFTP)..."
-echo "================================"
-
-rm -f /etc/ssh/ssh_host_*
-ssh-keygen -A
-
-chmod 600 /etc/ssh/ssh_host_*_key
-chmod 644 /etc/ssh/ssh_host_*_key.pub
-
-systemctl restart ssh
-
-echo "================================"
-echo "Generate machine-id..."
-echo "================================"
-
-mkdir -p /run/wings
-systemd-machine-id-setup
-
-echo "================================"
-echo "Cek config wings..."
-echo "================================"
-
-if [ ! -f "/etc/pterodactyl/config.yml" ]; then
-echo "Config wings belum ada"
-echo "Silahkan jalankan token dari panel"
-else
-echo "Config wings ditemukan"
-fi
-
-echo "================================"
-echo "Menjalankan wings..."
-echo "================================"
-
 systemctl enable wings
-systemctl restart wings
-
-sleep 3
-
-systemctl status wings --no-pager
 
 echo "================================"
-echo "FIX WINGS SELESAI"
+echo "WINGS FIX COMPLETE"
 echo "================================"
+echo ""
+echo "Sekarang jalankan token node dari panel:"
+echo ""
+echo "cd /etc/pterodactyl"
+echo "TOKEN COMMAND DARI PANEL"
+echo "systemctl restart wings"
