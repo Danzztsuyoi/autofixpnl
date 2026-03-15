@@ -2,7 +2,7 @@
 
 clear
 echo "================================"
-echo "AUTO FIX WINGS PTERODACTYL"
+echo "AUTO FIX WINGS PTERODACTYL PRO"
 echo "================================"
 
 sleep 2
@@ -12,7 +12,8 @@ echo "Memastikan docker aktif..."
 systemctl start docker 2>/dev/null
 systemctl enable docker 2>/dev/null
 
-if ! systemctl is-active --quiet docker; then
+if ! command -v docker &> /dev/null
+then
 echo "Docker belum ada, install docker..."
 curl -fsSL https://get.docker.com | sh
 
@@ -69,6 +70,30 @@ echo "Menyiapkan folder wings..."
 echo "================================"
 
 mkdir -p /etc/pterodactyl
+mkdir -p /var/lib/pterodactyl
+
+echo "================================"
+echo "Cek config wings..."
+echo "================================"
+
+if [ ! -f "/etc/pterodactyl/config.yml" ]; then
+echo "Config wings belum ada"
+echo "Silahkan jalankan token dari panel"
+else
+echo "Config wings ditemukan"
+fi
+
+echo "================================"
+echo "Menjalankan wings..."
+echo "================================"
+
+systemctl daemon-reload
+systemctl enable wings
+systemctl restart wings
+
+sleep 2
+
+systemctl status wings --no-pager
 
 echo "================================"
 echo "FIX WINGS SELESAI"
