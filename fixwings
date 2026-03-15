@@ -1,90 +1,151 @@
 #!/bin/bash
 
+# Warna untuk output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
 clear
-echo "================================"
-echo "AUTO FIX WINGS PTERODACTYL"
-echo "================================"
+echo -e "${GREEN}================================${NC}"
+echo -e "${GREEN}   AUTO FIX WINGS PTERODACTYL   ${NC}"
+echo -e "${GREEN}================================${NC}"
+echo ""
 
-sleep 2
+# Fungsi untuk mengecek error
+check_error() {
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Error: $1${NC}"
+        exit 1
+    fi
+}
 
-echo "Update package..."
+echo -e "${YELLOW}[1/8] Update package...${NC}"
 apt update -y
+check_error "Gagal update package"
 
-echo "================================"
-echo "Install dependency..."
-echo "================================"
+echo -e "${YELLOW}[2/8] Install dependencies...${NC}"
+apt install -y curl wget sudo iptables openssl tar unzip ufw
+check_error "Gagal install dependencies"
 
-apt install -y curl wget sudo iptables openssl
-
-echo "================================"
-echo "Install docker..."
-echo "================================"
-
-if ! command -v docker &> /dev/null
-then
-curl -fsSL https://get.docker.com | sh
+echo -e "${YELLOW}[3/8] Install Docker...${NC}"
+if ! command -v docker &> /dev/null; then
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    check_error "Gagal install docker"
+    rm get-docker.sh
+else
+    echo -e "${GREEN}Docker sudah terinstall${NC}"
 fi
 
+# Start dan enable docker
+systemctl start docker
 systemctl enable docker
-systemctl restart docker
+check_error "Gagal start docker"
 
-echo "================================"
-echo "Install wings..."
-echo "================================"
+# Cek docker status
+if ! systemctl is-active --quiet docker; then
+    echo -e "${RED}Docker tidak running, mencoba restart...${NC}"
+    systemctl restart docker
+    sleep 3
+fi
 
+echo -e "${YELLOW}[4/8] Install Wings...${NC}"
+# Hapus wings lama jika ada
+rm -f /usr/local/bin/wings
+
+# Download wings terbaru
 curl -L -o /usr/local/bin/wings https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_amd64
+check_error "Gagal download wings"
+
 chmod +x /usr/local/bin/wings
+check_error "Gagal set permission wings"
 
-echo "================================"
-echo "Setup folder..."
-echo "================================"
+# Verifikasi file wings
+if [ ! -f /usr/local/bin/wings ]; then
+    echo -e "${RED}File wings tidak ditemukan setelah download${NC}"
+    exit 1
+fi
 
+echo -e "${YELLOW}[5/8] Setup folder structure...${NC}"
 mkdir -p /etc/pterodactyl
-mkdir -p /var/lib/pterodactyl
 mkdir -p /var/lib/pterodactyl/volumes
 mkdir -p /var/log/pterodactyl
+mkdir -p /var/run/pterodactyl
 
+# Set permission
+chmod -R 755 /etc/pterodactyl
 chmod -R 755 /var/lib/pterodactyl
+chmod -R 755 /var/log/pterodactyl
+chmod -R 755 /var/run/pterodactyl
 
-echo "================================"
-echo "Generate SSH host key..."
-echo "================================"
-
+echo -e "${YELLOW}[6/8] Generate SSH host key...${NC}"
 ssh-keygen -A
+check_error "Gagal generate SSH key"
 
 systemctl restart ssh
+check_error "Gagal restart ssh"
 
-echo "================================"
-echo "Setup systemd service..."
-echo "================================"
-
-cat <<EOF > /etc/systemd/system/wings.service
+echo -e "${YELLOW}[7/8] Setup systemd service...${NC}"
+cat > /etc/systemd/system/wings.service <<EOF
 [Unit]
 Description=Pterodactyl Wings Daemon
-After=docker.service
+After=docker.service network-online.target
 Requires=docker.service
+Wants=network-online.target
 
 [Service]
 User=root
 WorkingDirectory=/etc/pterodactyl
+LimitNOFILE=65536
+LimitNPROC=65536
+TasksMax=infinity
+PIDFile=/var/run/pterodactyl/wings.pid
 ExecStart=/usr/local/bin/wings
-Restart=always
+ExecReload=/bin/kill -SIGTERM \$MAINPID
+Restart=on-failure
 RestartSec=5
-LimitNOFILE=4096
+EnvironmentFile=-/etc/pterodactyl/wings.conf
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
+# Reload systemd
 systemctl daemon-reload
-systemctl enable wings
+check_error "Gagal reload systemd"
 
-echo "================================"
-echo "WINGS FIX COMPLETE"
-echo "================================"
+echo -e "${YELLOW}[8/8] Enable service...${NC}"
+systemctl enable wings
+check_error "Gagal enable wings service"
+
+# Cek apakah ada file config.yml
+if [ -f /etc/pterodactyl/config.yml ]; then
+    echo -e "${GREEN}File config.yml ditemukan${NC}"
+else
+    echo -e "${YELLOW}File config.yml belum ada, siap untuk diisi token${NC}"
+fi
+
 echo ""
-echo "Sekarang jalankan token node dari panel:"
+echo -e "${GREEN}================================${NC}"
+echo -e "${GREEN}   WINGS FIX COMPLETE!          ${NC}"
+echo -e "${GREEN}================================${NC}"
 echo ""
-echo "cd /etc/pterodactyl"
-echo "TOKEN COMMAND DARI PANEL"
-echo "systemctl restart wings"
+echo -e "${YELLOW}Status Services:${NC}"
+systemctl is-active --quiet docker && echo -e "✅ Docker: ${GREEN}Running${NC}" || echo -e "❌ Docker: ${RED}Not Running${NC}"
+systemctl is-enabled --quiet wings && echo -e "✅ Wings: ${GREEN}Enabled${NC}" || echo -e "❌ Wings: ${RED}Not Enabled${NC}"
+echo ""
+echo -e "${YELLOW}Untuk menjalankan wings:${NC}"
+echo ""
+echo -e "1. Masuk ke folder: ${GREEN}cd /etc/pterodactyl${NC}"
+echo -e "2. Jalankan token dari panel:"
+echo -e "   ${GREEN}[paste token command dari panel]${NC}"
+echo -e "3. Restart wings:"
+echo -e "   ${GREEN}systemctl restart wings${NC}"
+echo -e "4. Cek status:"
+echo -e "   ${GREEN}systemctl status wings${NC}"
+echo ""
+echo -e "${YELLOW}Atau langsung dengan satu perintah:${NC}"
+echo -e "${GREEN}cd /etc/pterodactyl && [token] && systemctl restart wings${NC}"
+echo ""
+echo -e "${GREEN}================================${NC}"
