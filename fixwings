@@ -32,4 +32,30 @@ echo "Menghapus config lama..."
 
 rm -f /etc/pterodactyl/config.yml
 
-echo "Fix selesai"
+echo "================================"
+echo "Cek SSL Node..."
+echo "================================"
+
+DOMAIN=$(grep -oP 'https://\K[^ ]+' /etc/pterodactyl/config.yml 2>/dev/null)
+
+if [ -n "$DOMAIN" ]; then
+
+if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+
+echo "SSL belum ada, membuat SSL untuk $DOMAIN"
+
+apt install certbot -y
+
+certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos -m admin@$DOMAIN
+
+else
+
+echo "SSL sudah ada"
+
+fi
+
+fi
+
+echo "================================"
+echo "FIX WINGS SELESAI"
+echo "================================"
