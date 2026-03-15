@@ -144,19 +144,23 @@ PANEL=$(grep APP_URL /var/www/pterodactyl/.env | cut -d '=' -f2)
 echo "Masukkan API KEY PANEL:"
 read APIKEY
 
+echo "Masukkan DOMAIN NODE:"
+read NODE_DOMAIN
+
 NODE_ID=$(curl -s -H "Authorization: Bearer $APIKEY" \
 -H "Accept: application/json" \
-$PANEL/api/application/nodes | jq -r '.data[0].attributes.id')
+$PANEL/api/application/nodes | jq -r '.data[-1].attributes.id')
 
 echo "Node ID: $NODE_ID"
 
 curl -X POST "$PANEL/api/application/nodes/$NODE_ID/allocations" \
 -H "Authorization: Bearer $APIKEY" \
 -H "Content-Type: application/json" \
--d '{
-"ip": "0.0.0.0",
-"ports": ["2000-5000"]
-}'
+-d "{
+\"ip\": \"0.0.0.0\",
+\"alias\": \"$NODE_DOMAIN\",
+\"ports\": [\"2000-5000\"]
+}"
 
 echo "Allocation berhasil dibuat"
 
