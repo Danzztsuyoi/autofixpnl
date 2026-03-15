@@ -8,17 +8,17 @@ echo "================================"
 
 sleep 2
 
-echo "Menghentikan proses apt/dpkg..."
+echo "Memperbaiki APT LOCK..."
 
-killall apt apt-get dpkg 2>/dev/null
+killall apt apt-get 2>/dev/null
 
-rm -f /var/lib/dpkg/lock-frontend
-rm -f /var/lib/dpkg/lock
+rm -f /var/lib/dpkg/lock*
 rm -f /var/cache/apt/archives/lock
+rm -f /var/lib/apt/lists/lock
 
 dpkg --configure -a
 
-echo "Menunggu dpkg selesai..."
+echo "Menunggu proses dpkg..."
 
 while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
 sleep 2
@@ -28,10 +28,9 @@ while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ; do
 sleep 2
 done
 
-echo "Update sistem..."
+echo "Update repository..."
 
 apt update -y
-apt upgrade -y
 
 echo "Install dependency..."
 
@@ -46,14 +45,6 @@ systemctl restart redis-server 2>/dev/null
 echo "Stop wings..."
 
 systemctl stop wings 2>/dev/null
-
-echo "Membersihkan database lama..."
-
-mysql -u root -e "DROP DATABASE IF EXISTS panel;" 2>/dev/null
-mysql -u root -e "DROP USER IF EXISTS 'admin'@'127.0.0.1';" 2>/dev/null
-mysql -u root -e "DROP USER IF EXISTS 'admin'@'localhost';" 2>/dev/null
-mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'127.0.0.1';" 2>/dev/null
-mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'localhost';" 2>/dev/null
 
 echo "Membersihkan docker..."
 
