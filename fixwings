@@ -13,10 +13,8 @@ systemctl start docker 2>/dev/null
 systemctl enable docker 2>/dev/null
 
 if ! systemctl is-active --quiet docker; then
-echo "Docker belum aktif, menginstall docker..."
-
+echo "Docker belum aktif, install docker..."
 curl -fsSL https://get.docker.com | sh
-
 systemctl daemon-reload
 systemctl enable docker
 systemctl start docker
@@ -25,21 +23,14 @@ fi
 echo "Docker status:"
 systemctl is-active docker
 
-echo "Masuk ke folder pterodactyl..."
-
 mkdir -p /etc/pterodactyl
 cd /etc/pterodactyl
 
 echo "Menjalankan configure wings..."
 
-TOKEN="$1"
+token="$1"
 
-if [ -z "$TOKEN" ]; then
-echo "Token wings tidak diberikan!"
-exit 1
-fi
-
-eval "$TOKEN"
+yes | eval "$token"
 
 echo "Restart wings..."
 
