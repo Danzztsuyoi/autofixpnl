@@ -1,5 +1,3 @@
-
-
 #!/bin/bash
 
 clear
@@ -11,7 +9,7 @@ sleep 2
 
 echo "Update package..."
 apt update -y
-apt install curl certbot tar unzip -y
+apt install curl certbot tar unzip jq -y
 
 echo "================================"
 echo "Memastikan docker aktif..."
@@ -87,8 +85,8 @@ echo "================================"
 rm -f /etc/ssh/ssh_host_*
 ssh-keygen -A
 
-chmod 600 /etc/ssh/ssh_host_key
-chmod 644 /etc/ssh/ssh_host_key.pub
+chmod 600 /etc/ssh/ssh_host_*_key
+chmod 644 /etc/ssh/ssh_host_*_key.pub
 
 systemctl restart ssh
 
@@ -115,13 +113,15 @@ echo "================================"
 echo "AUTO FIX SSL NODE"
 echo "================================"
 
-DOMAIN=$(grep -oP 'live/\K[^/]+' /etc/pterodactyl/config.yml)
+if [ -f "/etc/pterodactyl/config.yml" ]; then
 
-if [ -n "$DOMAIN" ]; then
+DOMAIN=$(grep -oP '(?<=hostname: ).*' /etc/pterodactyl/config.yml | head -n1)
+
+echo "Domain node terdeteksi: $DOMAIN"
 
 if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
 
-echo "SSL tidak ditemukan, membuat SSL untuk $DOMAIN"
+echo "SSL tidak ditemukan, membuat SSL..."
 
 systemctl stop nginx
 
@@ -135,19 +135,10 @@ echo "SSL sudah ada"
 
 fi
 
-fi
+else
 
-echo "================================"
-echo "Cek config wings..."
-echo "================================"
+echo "Config wings belum ada, SSL dilewati"
 
-if [ ! -f "/etc/pterodactyl/config.yml" ]; then
-echo ""
-echo "CONFIG WINGS BELUM ADA"
-echo "Jalankan command ini:"
-echo ""
-echo "cd /etc/pterodactyl && wings configure --panel-url https://DOMAIN --token TOKEN --node ID"
-echo ""
 fi
 
 echo "================================"
