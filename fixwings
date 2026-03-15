@@ -24,37 +24,51 @@ fi
 echo "Docker status:"
 systemctl is-active docker
 
-echo "Menyiapkan folder wings..."
-
-mkdir -p /etc/pterodactyl
-
-echo "Menghapus config lama..."
-
-rm -f /etc/pterodactyl/config.yml
-
 echo "================================"
-echo "Cek SSL Node..."
+echo "Cek wings..."
 echo "================================"
 
-DOMAIN=$(grep -oP 'https://\K[^ ]+' /etc/pterodactyl/config.yml 2>/dev/null)
+if ! command -v wings &> /dev/null
+then
+echo "Wings belum ada, install wings..."
 
-if [ -n "$DOMAIN" ]; then
+curl -L -o /usr/local/bin/wings https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_amd64
+chmod +x /usr/local/bin/wings
 
-if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+echo "Membuat service wings..."
 
-echo "SSL belum ada, membuat SSL untuk $DOMAIN"
+cat <<EOF > /etc/systemd/system/wings.service
+[Unit]
+Description=Pterodactyl Wings Daemon
+After=docker.service
+Requires=docker.service
 
-apt install certbot -y
+[Service]
+User=root
+WorkingDirectory=/etc/pterodactyl
+LimitNOFILE=4096
+PIDFile=/var/run/wings.pid
+ExecStart=/usr/local/bin/wings
+Restart=on-failure
+StartLimitInterval=180
+StartLimitBurst=30
+RestartSec=5s
 
-certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos -m admin@$DOMAIN
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
 
 else
-
-echo "SSL sudah ada"
-
+echo "Wings sudah terinstall"
 fi
 
-fi
+echo "================================"
+echo "Menyiapkan folder wings..."
+echo "================================"
+
+mkdir -p /etc/pterodactyl
 
 echo "================================"
 echo "FIX WINGS SELESAI"
