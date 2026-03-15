@@ -32,9 +32,14 @@ cd /etc/pterodactyl
 
 echo "Menjalankan configure wings..."
 
-read -p "Masukkan command token wings: " token
+TOKEN="$1"
 
-eval "$token"
+if [ -z "$TOKEN" ]; then
+echo "Token wings tidak diberikan!"
+exit 1
+fi
+
+eval "$TOKEN"
 
 echo "Restart wings..."
 
