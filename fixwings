@@ -110,6 +110,32 @@ systemctl enable nginx
 systemctl restart nginx
 
 echo "================================"
+echo "AUTO FIX SSL NODE"
+echo "================================"
+
+DOMAIN=$(grep -oP 'live/\K[^/]+' /etc/pterodactyl/config.yml)
+
+if [ -n "$DOMAIN" ]; then
+
+if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+
+echo "SSL tidak ditemukan, membuat SSL untuk $DOMAIN"
+
+systemctl stop nginx
+
+certbot certonly --standalone -d $DOMAIN --agree-tos -m admin@$DOMAIN --non-interactive
+
+systemctl start nginx
+
+else
+
+echo "SSL sudah ada"
+
+fi
+
+fi
+
+echo "================================"
 echo "Cek config wings..."
 echo "================================"
 
