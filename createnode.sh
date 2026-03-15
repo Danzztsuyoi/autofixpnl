@@ -21,18 +21,23 @@ read disk_space
 echo "Masukkan Locid: "
 read locid
 
+echo "Masukkan API KEY PANEL: "
+read apikey
+
+
 cd /var/www/pterodactyl || { echo "Direktori tidak ditemukan"; exit 1; }
 
-# Membuat lokasi
+panel=$(grep APP_URL .env | cut -d '=' -f2)
+
 php artisan p:location:make <<EOF
 $location_name
 $location_description
 EOF
 
-# Membuat node
+
 php artisan p:node:make <<EOF
 $node_name
-$node_name
+$location_description
 $locid
 https
 $domain
@@ -40,15 +45,26 @@ yes
 no
 no
 $ram
-0
+$ram
 $disk_space
-0
+$disk_space
 100
 8080
 2022
 /var/lib/pterodactyl/volumes
 EOF
 
-echo "================================"
-echo "NODE BERHASIL DIBUAT"
-echo "================================"
+
+echo "Membuat Allocation 2000-5000..."
+
+curl -X POST "$panel/api/application/nodes/$locid/allocations" \
+-H "Authorization: Bearer $apikey" \
+-H "Accept: application/json" \
+-H "Content-Type: application/json" \
+-d "{
+\"ip\": \"0.0.0.0\",
+\"ports\": [\"2000-5000\"],
+\"alias\": \"$domain\"
+}"
+
+echo "Node dan Allocation berhasil dibuat."
